@@ -258,6 +258,13 @@ def sety(y):
 def setx(x):
     goto(x,_t.y)
 
+def seth(angle):
+    _t.seth(angle)
+
+def setheading(angle):
+    _t.setheading(angle)
+
+
 def circle(radius,extent=None,steps=50):
     _t.circle(radius,extent,steps)
 
