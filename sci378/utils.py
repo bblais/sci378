@@ -1,3 +1,35 @@
+def get_course_github(name='Computer-Programming-For-the-Sciences-Spring-2021',
+                     folder=None):
+    import os,sys,platform
+    from pathlib import Path
+    
+    github_url='https://github.com/bblais/'+name
+    
+    if folder is None:
+        downloads_folder=str(Path.home() / "Downloads")
+    else:
+        downloads_folder=folder
+                         
+    if not os.path.exists(downloads_folder):
+        raise ValueError("Can't find folder %s" % downloads_folder)
+        
+    local_folder=str(Path(downloads_folder)  / name)
+    
+    print(github_url," ---> ",local_folder)
+    
+    
+    if not os.path.exists(local_folder):
+        if platform.system()=="Windows":
+            !cd {downloads_folder} & git clone {github_url}
+        else:
+            !cd {downloads_folder} ; git clone {github_url}
+            
+    else:
+        if platform.system()=="Windows":
+            !cd {local_folder} & git pull {github_url}
+        else:
+            !cd {local_folder} ; git pull {github_url}
+
 class Struct(dict):
     
     def __getattr__(self,name):
