@@ -2,7 +2,12 @@ def get_course_github(name='Computer-Programming-For-the-Sciences-Spring-2021',
                      folder=None):
     import os,sys,platform
     from pathlib import Path
-    
+    import IPython
+
+
+    _ip=IPython.get_ipython()
+
+
     github_url='https://github.com/bblais/'+name
     
     if folder is None:
@@ -20,15 +25,15 @@ def get_course_github(name='Computer-Programming-For-the-Sciences-Spring-2021',
     
     if not os.path.exists(local_folder):
         if platform.system()=="Windows":
-            os.system(f"cd {downloads_folder} & git clone {github_url}")
+            print(_ip.getoutput(f"cd {downloads_folder} & git clone {github_url}"))
         else:
-            os.system(f"cd {downloads_folder} ; git clone {github_url}")
+            print(_ip.getoutput(f"cd {downloads_folder} ; git clone {github_url}"))
             
     else:
         if platform.system()=="Windows":
-            os.system(f"cd {local_folder} & git pull {github_url}")
+            print(_ip.getoutput(f"cd {local_folder} & git pull {github_url}"))
         else:
-            os.system(f"cd {local_folder} ; git pull {github_url}")
+            print(_ip.getoutput(os.system(f"cd {local_folder} ; git pull {github_url}"))
 
 class Struct(dict):
     
