@@ -33,7 +33,7 @@ def get_course_github(name='Computer-Programming-For-the-Sciences-Spring-2021',
         if platform.system()=="Windows":
             print(_ip.getoutput(f"cd {local_folder} & git pull {github_url}"))
         else:
-            print(_ip.getoutput(os.system(f"cd {local_folder} ; git pull {github_url}"))
+            print(_ip.getoutput(f"cd {local_folder} ; git pull {github_url}"))
 
 class Struct(dict):
     
