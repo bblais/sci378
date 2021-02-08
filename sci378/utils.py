@@ -20,15 +20,15 @@ def get_course_github(name='Computer-Programming-For-the-Sciences-Spring-2021',
     
     if not os.path.exists(local_folder):
         if platform.system()=="Windows":
-            !cd {downloads_folder} & git clone {github_url}
+            os.system(f"cd {downloads_folder} & git clone {github_url}")
         else:
-            !cd {downloads_folder} ; git clone {github_url}
+            os.system(f"cd {downloads_folder} ; git clone {github_url}")
             
     else:
         if platform.system()=="Windows":
-            !cd {local_folder} & git pull {github_url}
+            os.system(f"cd {local_folder} & git pull {github_url}")
         else:
-            !cd {local_folder} ; git pull {github_url}
+            os.system(f"cd {local_folder} ; git pull {github_url}")
 
 class Struct(dict):
     
