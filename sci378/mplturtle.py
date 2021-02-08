@@ -35,6 +35,7 @@ class Turtle(object):
         ax.clear()
         ax.axis('equal')
         ax.axis(self.limits)
+        ax.grid(False)
 
         self.data=[]
         
@@ -281,6 +282,8 @@ def animate(delay=0.05,skip=1,figsize=(5,5)):
             ax.clear()
             ax.set_facecolor(_t.facecolor)
             ax.axis('equal')
+            ax.grid(False)
+
             ax.axis(_t.limits)
             
             for x,y,t,k in _t.texts:
