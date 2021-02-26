@@ -22,6 +22,12 @@ rcParams['figure.figsize']=(12,8)
 
 rcParams['axes.grid']=True
 
+def xaxis_dates():
+    import matplotlib.dates as mdates
+    plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%Y/%m/%d'))
+    plt.gca().xaxis.set_major_locator(mdates.DayLocator())
+    plt.gcf().autofmt_xdate()
+
 
 def plot_correlations(data,*args):
     if len(args)>0:
