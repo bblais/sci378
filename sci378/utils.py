@@ -74,6 +74,17 @@ class Storage(object):
             for d,a in zip(self.data,args):
                 d.append(a)
        
+    def DataFrame(self,variable_names=None):
+        from pandas import DataFrame
+
+        if variable_names is None:
+            keys=['Variable %d' % _ for _ in range(len(S.data))]
+        else:
+            keys=variable_names
+
+        return pd.DataFrame({k:v for k,v in zip(keys,self.data)})
+
+
     def arrays(self):
         from numpy import array
 
