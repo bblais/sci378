@@ -78,7 +78,7 @@ class Storage(object):
         from pandas import DataFrame
 
         if variable_names is None:
-            keys=['Variable %d' % _ for _ in range(len(S.data))]
+            keys=['Variable %d' % _ for _ in range(len(self.data))]
         else:
             keys=variable_names
 
