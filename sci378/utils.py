@@ -82,7 +82,7 @@ class Storage(object):
         else:
             keys=variable_names
 
-        return pd.DataFrame({k:v for k,v in zip(keys,self.data)})
+        return DataFrame({k:v for k,v in zip(keys,self.data)})
 
 
     def arrays(self):
