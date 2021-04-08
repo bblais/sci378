@@ -186,7 +186,7 @@ class BESTModel(object):
         self.S=np.std(pooled)
         self.M=np.mean(pooled)
         
-        self.names=['mu1','mu2','sigma1','sigma2','nu']
+        self.names=['μ1','μ2','σ1','σ2','ν']
         self.params=[]
         self.params_dict={}
         
@@ -194,17 +194,17 @@ class BESTModel(object):
         return np.array([self.M,self.M,self.S,self.S,10])
     
     def prior(self,theta):
-        mu1,mu2,sd1,sd2,nu=theta
+        μ1,μ2,σ1,σ2,ν=theta
         value=0.0
-        value+=lognormalpdf(mu1,self.M,1000*self.S)
-        value+=lognormalpdf(mu2,self.M,1000*self.S)
+        value+=lognormalpdf(μ1,self.M,1000*self.S)
+        value+=lognormalpdf(μ2,self.M,1000*self.S)
         
         mn=0.001*self.S
         mx=1000*self.S
-        value+=loguniformpdf(sd1,mn,mx-mn)
-        value+=loguniformpdf(sd2,mn,mx-mn)
+        value+=loguniformpdf(σ1,mn,mx-mn)
+        value+=loguniformpdf(σ2,mn,mx-mn)
 
-        value+=logexponpdf(nu-1,scale=29)
+        value+=logexponpdf(ν-1,scale=29)
         return value
         
     def run_mcmc(self,iterations=1000,burn=0.1):
@@ -222,54 +222,54 @@ class BESTModel(object):
         
         burnin = int(self.sampler.chain.shape[1]*burn)
         samples = self.sampler.chain[:, burnin:, :]
-        self.mu1=samples[:,:,0]
-        self.mu2=samples[:,:,1]
-        self.sigma1=samples[:,:,2]
-        self.sigma2=samples[:,:,3]
-        self.nu=samples[:,:,4]
+        self.μ1=samples[:,:,0]
+        self.μ2=samples[:,:,1]
+        self.σ1=samples[:,:,2]
+        self.σ2=samples[:,:,3]
+        self.ν=samples[:,:,4]
         
-        self.params=[self.mu1,self.mu2,self.sigma1,self.sigma2,self.nu]
-        self.params_dict['mu1']=self.mu1
-        self.params_dict['mu2']=self.mu2
-        self.params_dict['sigma1']=self.sigma1
-        self.params_dict['sigma2']=self.sigma2
-        self.params_dict['nu']=self.nu
+        self.params=[self.μ1,self.μ2,self.σ1,self.σ2,self.ν]
+        self.params_dict['μ1']=self.μ1
+        self.params_dict['μ2']=self.μ2
+        self.params_dict['σ1']=self.σ1
+        self.params_dict['σ2']=self.σ2
+        self.params_dict['ν']=self.ν
         
         
         
     def __len__(self):
-        return 5  # mu1,mu2,sd1,sd2,nu
+        return 5  # μ1,μ2,σ1,σ2,ν
         
     def likelihood(self,theta):
-        mu1,mu2,sd1,sd2,nu=theta
+        μ1,μ2,σ1,σ2,ν=theta
         y1,y2=self.data
         
         value=0.0
-        value+=logtpdf(y1,nu,mu1,sd1)
-        value+=logtpdf(y2,nu,mu2,sd2)
+        value+=logtpdf(y1,ν,μ1,σ1)
+        value+=logtpdf(y2,ν,μ2,σ2)
 
         return value
     
     def plot_chains(self,S,*args,**kwargs):
         from numpy import sqrt,log,sin,cos,tan,exp
 
-        mu1,mu2,sigma1,sigma2,nu=self.params
-        N=float(np.prod(mu1.shape))
+        μ1,μ2,σ1,σ2,ν=self.params
+        N=float(np.prod(μ1.shape))
 
         if '=' in S:
             name,expr=S.split('=')
             value=eval(expr)
         else:
             name=S
-            if name=='mu1':
+            if name=='μ1':
                 name=r"\mu_1"
-            elif name=='mu2':
+            elif name=='μ2':
                 name=r"\mu_2"
-            elif name=='sigma1':
+            elif name=='σ1':
                 name=r"\sigma_1"
-            elif name=='sigma2':
+            elif name=='σ2':
                 name=r"\sigma_2"
-            elif name=='nu':
+            elif name=='ν':
                 name=r"\nu"
             else:
                 name=r"%s" % name
@@ -288,23 +288,23 @@ class BESTModel(object):
 
         pp=[(100-p)/2.0,50,100-(100-p)/2.0]
         
-        mu1,mu2,sigma1,sigma2,nu=self.params
-        N=float(np.prod(mu1.shape))
+        μ1,μ2,σ1,σ2,ν=self.params
+        N=float(np.prod(μ1.shape))
         
         if '=' in S:
             name,expr=S.split('=')
             value=eval(expr)
         else:
             name=S
-            if name=='mu1':
+            if name=='μ1':
                 name=r"\hat{\mu}_1"
-            elif name=='mu2':
+            elif name=='μ2':
                 name=r"\hat{\mu}_2"
-            elif name=='sigma1':
+            elif name=='σ1':
                 name=r"\hat{\sigma}_1"
-            elif name=='sigma2':
+            elif name=='σ2':
                 name=r"\hat{\sigma}_2"
-            elif name=='nu':
+            elif name=='ν':
                 name=r"\hat{\nu}"
             else:
                 name=r"\hat{%s}" % name
@@ -322,8 +322,8 @@ class BESTModel(object):
     def P(self,S):
         from numpy import sqrt,log,sin,cos,tan,exp
         
-        mu1,mu2,sigma1,sigma2,nu=self.params
-        N=float(np.prod(mu1.shape))
+        μ1,μ2,σ1,σ2,ν=self.params
+        N=float(np.prod(μ1.shape))
         result=eval('np.sum(%s)/N' % S)
         return result
             
