@@ -332,12 +332,22 @@ def quadratic_equation_string(a,b,c):
 
     return s
 
-from scipy.special import gammaln,gamma
-def logfact(N):
-    return gammaln(N+1)
 
-def lognchoosek(N,k):
-    return gammaln(N+1)-gammaln(k+1)-gammaln((N-k)+1)
+
+from scipy.special import gammaln,gamma
+
+def tpdf(x,df,mu,sd):
+    t=(x-mu)/float(sd)
+    return gamma((df+1)/2.0)/sqrt(df*pi)/gamma(df/2.0)/sd*(1+t**2/df)**(-(df+1)/2.0)
+    
+def logtpdf(x,df,mu,sd):
+    try:
+        N=len(x)
+    except TypeError:
+        N=1
+    
+    t=(x-mu)/float(sd)
+    return N*(gammaln((df+1)/2.0)-0.5*np.log(df*np.pi)-gammaln(df/2.0)-np.log(sd))+(-(df+1)/2.0)*np.sum(np.log(1+t**2/df))
 
 def loguniformpdf(x,mn,mx):
     if mn < x < mx:
@@ -349,21 +359,47 @@ def logjeffreyspdf(x):
         return -np.log(x)
     return -np.inf
 
-def lognormalpdf(x,mn,sig):
-    # 1/sqrt(2*pi*sigma^2)*exp(-x^2/2/sigma^2)
+def logcauchypdf(x,x0,scale):
+    return -np.log(np.pi)-np.log(scale)-np.log(1 + ((x-x0)/scale)**2)
+
+def loghalfcauchypdf(x,x0,scale):
     try:
         N=len(x)
     except TypeError:
         N=1
-        
-    try:
-        sig1=len(sig)
-        return -0.5*sum(np.log(2*np.pi*sig**2)) - np.sum((x-mn)**2/sig**2/2.0)
-    except TypeError:
-        sig1=1
 
+    if x<=0:
+        return -np.inf
+
+    return -np.log(np.pi)-np.log(scale)-np.log(1 + ((x-x0)/scale)**2)
+
+def loghalfnormalpdf(x,sig):
+    # x>0: 2/sqrt(2*pi*sigma^2)*exp(-x^2/2/sigma^2)
+    try:
+        N=len(x)
+    except TypeError:
+        N=1
+    if x<=0:
+        return -np.inf
+        
+    return np.log(2)-0.5*np.log(2*np.pi*sig**2)*N - np.sum(x**2/sig**2/2.0)
+
+def lognormalpdf(x,mn,sig):
+    # 1/sqrt(2*pi*sigma^2)*exp(-x^2/2/sigma^2)
+    try:
+        N=len(x)
         return -0.5*np.log(2*np.pi*sig**2)*N - np.sum((x-mn)**2/sig**2/2.0)
-    
+    except TypeError:
+        N=1
+        return -0.5*np.log(2*np.pi*sig**2)*N - (x-mn)**2/sig**2/2.0
+        
+
+def logexponpdf2(x,scale):
+    if x<=0:
+        return -np.inf
+    return np.log(scale)-x/scale
+
+
 def logbernoullipdf(theta, h, N):
     return lognchoosek(N,h)+np.log(theta)*h+np.log(1-theta)*(N-h)
 
@@ -375,6 +411,28 @@ def logexponpdf(x,_lambda):
     return _lambda*x + np.log(_lambda)
 
 import scipy.optimize as op
+
+class StudentT(object):
+    def __init__(self,mean=0,std=1,dof=1):
+        self.mean=mean
+        self.std=std
+        self.dof=dof
+        self.default=mean
+        
+    @property
+    def D(self):
+        return D.t(self.dof,loc=self.mean,scale=self.std)
+
+    def rand(self,*args):
+        return np.random.randn(*args)*self.std+self.mean
+    
+    def __call__(self,x):
+        return logtpdf(x,self.dof,self.mean,self.std)
+
+
+
+
+
 
 class Normal(object):
     def __init__(self,mean=0,std=1):
@@ -424,7 +482,7 @@ class UniformLog(object):
             return -np.inf
         return loguniformpdf(log(x),self.min,self.max)
 
-class Jeffries(object):
+class Jeffreys(object):
     def __init__(self):
         self.default=1.0
         
