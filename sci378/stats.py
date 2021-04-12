@@ -248,6 +248,8 @@ def corner(samples,labels):
                     [l.set_rotation(45) for l in ax.get_yticklabels()]
                 else:
                     ax.set_yticklabels([])
+
+                ax.grid(True)
     
     # make all the x- and y-lims the same
     j=0
@@ -336,6 +338,9 @@ def quadratic_equation_string(a,b,c):
 
 from scipy.special import gammaln,gamma
 
+def logfact(N):
+    return gammaln(N+1)
+
 def tpdf(x,df,mu,sd):
     t=(x-mu)/float(sd)
     return gamma((df+1)/2.0)/sqrt(df*pi)/gamma(df/2.0)/sd*(1+t**2/df)**(-(df+1)/2.0)
@@ -355,12 +360,13 @@ def loguniformpdf(x,mn,mx):
     return -np.inf
 
 def logjeffreyspdf(x):
+    
     if x>0.0:
-        return -np.log(x)
+        return -np.log(x).sum()
     return -np.inf
 
 def logcauchypdf(x,x0,scale):
-    return -np.log(np.pi)-np.log(scale)-np.log(1 + ((x-x0)/scale)**2)
+    return (-np.log(np.pi)-np.log(scale)-np.log(1 + ((x-x0)/scale)**2)).sum()
 
 def loghalfcauchypdf(x,x0,scale):
     try:
@@ -371,7 +377,7 @@ def loghalfcauchypdf(x,x0,scale):
     if x<=0:
         return -np.inf
 
-    return -np.log(np.pi)-np.log(scale)-np.log(1 + ((x-x0)/scale)**2)
+    return (-np.log(np.pi)-np.log(scale)-np.log(1 + ((x-x0)/scale)**2)).sum()
 
 def loghalfnormalpdf(x,sig):
     # x>0: 2/sqrt(2*pi*sigma^2)*exp(-x^2/2/sigma^2)
@@ -401,7 +407,7 @@ def logexponpdf2(x,scale):
 
 
 def logbernoullipdf(theta, h, N):
-    return lognchoosek(N,h)+np.log(theta)*h+np.log(1-theta)*(N-h)
+    return logfact(N)-logfact(h)-logfact(N-h)+np.log(theta)*h+np.log(1-theta)*(N-h)
 
 def logbetapdf(theta, h, N):
     return logfact(N+1)-logfact(h)-logfact(N-h)+np.log(theta)*h+np.log(1-theta)*(N-h)
@@ -430,43 +436,164 @@ class StudentT(object):
         return logtpdf(x,self.dof,self.mean,self.std)
 
 
-
-
-
-
 class Normal(object):
     def __init__(self,mean=0,std=1):
         self.mean=mean
         self.std=std
         self.default=mean
         
+    @property
+    def D(self):
+        return D.norm(self.mean,self.std)
+
     def rand(self,*args):
         return np.random.randn(*args)*self.std+self.mean
     
     def __call__(self,x):
         return lognormalpdf(x,self.mean,self.std)
+
+class LogNormal(object):
+    def __init__(self,mean=0,std=1):
+        self.mean=mean
+        self.std=std
+        self.default=mean
+        
+    @property
+    def D(self):
+        return D.lognorm(self.mean,self.std)
+
+    def rand(self,*args):
+        return np.random.randn(*args)*self.std+self.mean
+    
+    def __call__(self,x):
+        return loglognormalpdf(x,self.mean,self.std)
+
+
 class Exponential(object):
     def __init__(self,_lambda=1):
         self._lambda=_lambda
+
+    @property
+    def D(self):
+        return D.expon(self._lambda)
+
+    def rand(self,*args):
+        return np.random.rand(*args)*2+1
+        
+    def __call__(self,x):
+        return logexponpdf(x,self._lambda)
+
+class HalfCauchy(object):
+    def __init__(self,x0=0,scale=1):
+        self.x0=x0
+        self.scale=scale
+        self.default=x0
+
+    @property
+    def D(self):
+        return D.halfcauchy(loc=self.x0,scale=self.scale) 
 
     def rand(self,*args):
         return np.random.rand(*args)*2
         
     def __call__(self,x):
-        return logexponpdf(x,self._lambda)
+        return loghalfcauchypdf(x,self.x0,self.scale)
 
+
+class HalfNormal(object):
+    def __init__(self,sigma=1):
+        self.sigma=sigma
+
+    @property
+    def D(self):
+        return D.halfnorm(self.sigma)
+
+    def rand(self,*args):
+        return np.random.rand(*args)*2
+        
+    def __call__(self,x):
+        return loghalfnormalpdf(x,self.sigma)
 
 class Uniform(object):
     def __init__(self,min=0,max=1):
         self.min=min
         self.max=max
         self.default=(min+max)/2.0
-       
+
+    @property
+    def D(self):
+        return D.uniform(self.min,self.max-self.min)
+
     def rand(self,*args):
         return np.random.rand(*args)*(self.max-self.min)+self.min
         
     def __call__(self,x):
         return loguniformpdf(x,self.min,self.max)
+
+class Jeffreys(object):
+    def __init__(self):
+        self.default=1.0
+        self.D=None # improper
+
+    def rand(self,*args):
+        return np.random.rand(*args)*2
+        
+    def __call__(self,x):
+        return logjeffreyspdf(x)
+
+class Cauchy(object):
+    def __init__(self,x0=0,scale=1):
+        self.x0=x0
+        self.scale=scale
+        self.default=x0
+
+    @property
+    def D(self):
+        return D.cauchy(loc=self.x0,scale=self.scale) 
+
+    def rand(self,*args):
+        return np.random.rand(*args)*2-1
+        
+    def __call__(self,x):
+        return logcauchypdf(x,self.x0,self.scale)
+
+
+class Beta(object):
+    def __init__(self,h=100,N=100):
+        self.h=h
+        self.N=N
+        self.default=float(h)/N
+
+    @property
+    def D(self):
+        a=self.h+1
+        b=(self.N-self.h)+1
+        return D.beta(a,b)
+
+
+    def rand(self,*args):
+        return np.random.rand(*args)
+        
+    def __call__(self,x):
+        return logbetapdf(x,self.h,self.N)
+
+class Bernoulli(object):
+    def __init__(self,h=100,N=100):
+        self.h=h
+        self.N=N
+        self.default=float(h)/N
+
+    @property
+    def D(self):
+        return D.bernoulli(self.default)
+
+    def rand(self,*args):
+        return np.random.rand(*args)
+        
+    def __call__(self,x):
+        return logbernoullipdf(x,self.h,self.N)
+     
+
 
 class UniformLog(object):
     def __init__(self,min=0,max=1):
@@ -482,46 +609,14 @@ class UniformLog(object):
             return -np.inf
         return loguniformpdf(log(x),self.min,self.max)
 
-class Jeffreys(object):
-    def __init__(self):
-        self.default=1.0
-        
-    def rand(self,*args):
-        return np.random.rand(*args)*2
-        
-    def __call__(self,x):
-        return logjeffreyspdf(x)
 
-class Beta(object):
-    def __init__(self,h=100,N=100):
-        self.h=h
-        self.N=N
-        self.default=float(h)/N
-
-    def rand(self,*args):
-        return np.random.rand(*args)
-        
-    def __call__(self,x):
-        return logbetapdf(x,self.h,self.N)
-
-class Bernoulli(object):
-    def __init__(self,h=100,N=100):
-        self.h=h
-        self.N=N
-        self.default=float(h)/N
-
-    def rand(self,*args):
-        return np.random.rand(*args)
-        
-    def __call__(self,x):
-        return logbernoullipdf(x,self.h,self.N)
-     
 
 def lnprior_function(model):
     def _lnprior(x):
         return model.lnprior(x)
 
     return _lnprior
+
 
 class MCMCModel_Meta(object):
 
@@ -568,11 +663,19 @@ class MCMCModel_Meta(object):
             except IndexError:
                 N=300
 
+            val=np.zeros(len(self.keys))
             pos=zeros((self.nwalkers,ndim))
+            use_sample_ball=False
             for i,key in enumerate(self.keys):
-                pos[:,i]=self.params[key].rand(100)
+                try:
+                    pos[:,i]=self.params[key].rand(100)
+                except AttributeError:
+                    val[i]=self.params[key]
+                    use_sample_ball=True
 
-            
+            if use_sample_ball:
+                pos=emcee.utils.sample_ball(val, .05*val+1e-4, size=self.nwalkers)
+                
             self.sampler = emcee.EnsembleSampler(self.nwalkers, ndim, 
                     lnprior_function(self))
 
@@ -709,6 +812,7 @@ class MCMCModel_Meta(object):
             
     def plot_distributions(self,*args,**kwargs):
 
+        from scipy.stats import distributions as D
         def kdeplot_op(ax,data):
             from scipy.stats import kde
             
@@ -738,39 +842,50 @@ class MCMCModel_Meta(object):
 
                 label='%s' % namestr
 
-            i=self.index[key]
             
             py.figure(figsize=(12,4))
-            result=histogram(self.samples[:,i],bins=200)
+            samples=self.get_samples(key)
+            
+            result=histogram(samples,bins=200)
             xlim=py.gca().get_xlim()
             x=py.linspace(xlim[0],xlim[1],500)
-            y=D.norm.pdf(x,np.median(self.samples[:,i]),np.std(self.samples[:,i]))
+            y=D.norm.pdf(x,np.median(samples),np.std(samples))
             py.plot(x,y,'-')
 
-            v=np.percentile(self.samples[:,i], [2.5, 50, 97.5],axis=0)
+            v=np.percentile(samples, [2.5, 50, 97.5],axis=0)
             py.title(r'$\hat{%s}^{97.5}_{2.5}=%.3f^{%.3f}_{%.3f}$' % (label,v[1],v[2],v[0]))
             py.ylabel(r'$p(%s|{\rm data})$' % label)
             py.xlabel(r'$%s$' % label)
                 
     def get_distribution(self,key,bins=200):
             
-        i=self.index[key]
-        x,y=histogram(self.samples[:,i],bins=bins,plot=False)
+        if key in self.index:
+            i=self.index[key]
+            x,y=histogram(self.samples[:,i],bins=bins,plot=False)
+        else:
+            x,y=histogram(self.get_samples(key)[0],bins=bins,plot=False)
         
         return x,y
         
-    def percentiles(self,p=[16, 50, 84]):
+    def percentiles(self,p=[16, 50, 84],S=None):
         result={}
-        for i,key in enumerate(self.keys):
-            result[key]=np.percentile(self.samples[:,i], p,axis=0)
-            
+
+
+        if S is None:
+            for i,key in enumerate(self.keys):
+                result[key]=np.percentile(self.samples[:,i], p,axis=0)
+        else:    
+            result[S]=np.percentile(self.get_samples(S),p,axis=0)
+
         return result
+
         
-    def best_estimates(self):
+    def best_estimates(self,S=None):
+
         self.median_values=np.percentile(self.samples,50,axis=0)
         theta=self.median_values
         
-        return self.percentiles()
+        return self.percentiles(S=S)
 
     def sample_iterator(self,*args):
         s=self.get_samples(*args)
@@ -785,12 +900,34 @@ class MCMCModel_Meta(object):
 
 
     def get_samples(self,*args):
+        from numpy import sqrt,log,sin,cos,tan,exp,array
+        import numpy as np
+
+        if not args:
+            args=self.keys
+        
         result=[]
         for arg in args:
-            idx=self.keys.index(arg)
-            result.append(self.samples[:,idx])
-    
-        return result
+            if arg in self.keys:
+                idx=self.keys.index(arg)
+                result.append(self.samples[:,idx])
+            else:
+                D={}
+                for key in self.keys:
+                    v=array(self.get_samples(key))
+                    D[key]=v
+                
+                D['np']=np
+                for name,fun in zip(['sqrt','log','sin','cos','tan','exp','array'],
+                                    [sqrt,log,sin,cos,tan,exp,array]):
+                    D[name]=fun
+                
+                N=float(np.prod(v.shape))
+                D['N']=N
+            
+                result.append(eval(arg,D).squeeze())
+
+        return np.atleast_2d(array(result)).T
     
     def BIC(self):
         L=self.lnlike(self.median_values)
@@ -870,15 +1007,56 @@ class MCMCModel_Meta(object):
             p25, p50, p75 = np.percentile(BF, [25, 50, 75])
             return p50, 0.7413 * (p75 - p25)
 
+    def P(self,S):
+        from numpy import sqrt,log,sin,cos,tan,exp,array
+        import numpy as np
+
+        D={}
+        for key in self.keys:
+            v=array(self.get_samples(key))
+            D[key]=v
+        
+        D['np']=np
+        for name,fun in zip(['sqrt','log','sin','cos','tan','exp','array'],
+                            [sqrt,log,sin,cos,tan,exp,array]):
+            D[name]=fun
+        
+        N=float(np.prod(v.shape))
+        D['N']=N
+        
+        result=eval('np.sum(%s)/N' % S,D)
+        return result
 
 
 class MCMCModel(MCMCModel_Meta):
     def __init__(self,data,lnlike,lnprior=None,**kwargs):
+        import inspect
 
         self.data=data
         self.lnprior_function=lnprior
         self.lnlike_function=lnlike
 
+        # if not lnprior is None:
+
+        #     func=lnprior
+
+        #     pos_args = []
+        #     kw_args = {}
+        #     keywords_ = None
+        #     sig = inspect.signature(func)
+        #     for fnam, fpar in sig.parameters.items():
+        #         if fpar.kind == fpar.VAR_KEYWORD:
+        #             keywords_ = fnam
+        #         elif fpar.kind == fpar.POSITIONAL_OR_KEYWORD:
+        #             if fpar.default == fpar.empty:
+        #                 pos_args.append(fnam)
+        #             else:
+        #                 kw_args[fnam] = fpar.default
+        #         elif fpar.kind == fpar.VAR_POSITIONAL:
+        #             raise ValueError("varargs '*%s' is not supported" % fnam)
+        #     # inspection done
+
+        #     kwargs={k:None for k in pos_args}
 
         MCMCModel_Meta.__init__(self,**kwargs)
 
@@ -908,25 +1086,6 @@ class MCMCModel(MCMCModel_Meta):
         return self.lnlike_function(self.data,**params_dict)
 
 
-    def P(self,S):
-        from numpy import sqrt,log,sin,cos,tan,exp,array
-        import numpy as np
-
-        D={}
-        for key in self.keys:
-            v=array(self.get_samples(key))
-            D[key]=v
-        
-        D['np']=np
-        for name,fun in zip(['sqrt','log','sin','cos','tan','exp','array'],
-                            [sqrt,log,sin,cos,tan,exp,array]):
-            D[name]=fun
-        
-        N=float(np.prod(v.shape))
-        D['N']=N
-        
-        result=eval('np.sum(%s)/N' % S,D)
-        return result
 
 
 class MCMCModel1(MCMCModel_Meta):
@@ -939,7 +1098,7 @@ class MCMCModel1(MCMCModel_Meta):
         
         MCMCModel_Meta.__init__(self,**kwargs)
 
-        self.params['_sigma']=Jeffries()
+        self.params['_sigma']=Jeffreys()
         self.keys.append('_sigma')        
         self.index['_sigma']=len(self.keys)-1
 
