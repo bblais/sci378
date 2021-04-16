@@ -668,7 +668,7 @@ class MCMCModel_Meta(object):
             use_sample_ball=False
             for i,key in enumerate(self.keys):
                 try:
-                    pos[:,i]=self.params[key].rand(100)
+                    pos[:,i]=self.params[key].rand(self.nwalkers)
                 except AttributeError:
                     val[i]=self.params[key]
                     use_sample_ball=True
