@@ -114,3 +114,20 @@ def ols_result_random_samples(results,N=1000):
         results2.params[:]=p
             
         yield results2
+
+
+def date_to_float(d):
+    
+    from dateutil import parser
+    import datetime  
+    from numpy import array
+    
+    try:
+        dt=parser.parse(d)
+        year=dt.year
+        f=year+(dt-datetime.datetime(year, 1, 1, 0, 0))/(datetime.datetime(year+1, 1, 1, 0, 0)-datetime.datetime(year, 1, 1, 0, 0))
+
+        return f
+    except TypeError:
+        f=[date_to_float(_) for _ in array(d)]
+        return array(f)
