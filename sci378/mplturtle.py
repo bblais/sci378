@@ -24,7 +24,7 @@ class Turtle(object):
         self.texts=[]
         self.limits=[-100,100,-100,100]
         
-    def clear(self):
+    def clear(self): 
         fig=py.figure(figsize=self.figsize)
         ax=fig.gca()
 
