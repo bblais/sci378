@@ -410,6 +410,9 @@ def logbernoullipdf(theta, h, N):
     return logfact(N)-logfact(h)-logfact(N-h)+np.log(theta)*h+np.log(1-theta)*(N-h)
 
 def logbetapdf(theta, h, N):
+    if theta<0 or theta>1:
+        return -np.inf
+        
     return logfact(N+1)-logfact(h)-logfact(N-h)+np.log(theta)*h+np.log(1-theta)*(N-h)
 
 def logexponpdf(x,_lambda):
@@ -640,6 +643,8 @@ class MCMCModel_Meta(object):
         self.last_pos=None
         self.max_iterator=1000  # for the sample iterator
 
+        self.parallel = False
+
     def lnprior(self,theta):
         pass
 
@@ -720,24 +725,51 @@ class MCMCModel_Meta(object):
         self.samples = self.sampler.chain[:, burnin:, :].reshape((-1, ndim))
     
     def run_mcmc(self,N,repeat=1,**kwargs):
+        try:
+            import multiprocess as mp
+            mp.set_start_method('fork')            
+        except ImportError:
+            self.parallel=False
+
+        import os
+
+        if self.parallel:
+            os.environ["OMP_NUM_THREADS"] = "1"            
+
+
         ndim=len(self.params)
         
         if self.last_pos is None:
             self.set_initial_values()
         
         
-        for i in range(repeat):        
-            self.sampler = emcee.EnsembleSampler(self.nwalkers, ndim, self,)
- 
-            timeit(reset=True)
-            if repeat==1:
-                print("Running MCMC...")
-            else:
-                print("Running MCMC %d/%d..." % (i+1,repeat))
+        for i in range(repeat):
 
-            self.sampler.run_mcmc(self.last_pos, N,**kwargs)
+            timeit(reset=True)
+
+            if not self.parallel:
+                self.sampler = emcee.EnsembleSampler(self.nwalkers, ndim, self,)
+
+                if repeat==1:
+                    print("Running MCMC...")
+                else:
+                    print("Running MCMC %d/%d..." % (i+1,repeat))
+
+                self.sampler.run_mcmc(self.last_pos, N,**kwargs)
+
+            else:
+                with mp.Pool() as pool:
+                    self.sampler = emcee.EnsembleSampler(self.nwalkers, ndim, self, pool=pool)
+                    if repeat==1:
+                        print("Running Parallel MCMC...")
+                    else:
+                        print("Running Parallel MCMC %d/%d..." % (i+1,repeat))
+
+                    self.sampler.run_mcmc(self.last_pos, N,**kwargs)
+
             print("Done.")
             print((timeit()))
+
 
             # assign the median back into the simulation values
             self.burn()
