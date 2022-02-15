@@ -22,6 +22,21 @@ rcParams['figure.figsize']=(12,8)
 
 rcParams['axes.grid']=True
 
+def set_plot_colors(*args):
+
+    # set_plot_colors("red","green","blue","cyan","orange")
+    # set_plot_colors("virdis",5)
+    from matplotlib import rcParams,cycler,cm
+
+    try:
+        cmap=cm.get_cmap(args[0], args[1])
+        rcParams['axes.prop_cycle'] = cycler(color=[cmap(i) for i in range(args[1])])
+
+    except (ValueError,IndexError) as err:
+        rcParams['axes.prop_cycle'] = cycler(color=args) 
+
+
+
 def xaxis_dates():
     import matplotlib.dates as mdates
     plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%Y/%m/%d'))
