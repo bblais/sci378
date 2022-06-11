@@ -135,5 +135,5 @@ def date_to_float(d,format='american'):
 
         return f
     except TypeError:
-        f=[date_to_float(_,format=format) for _ in array(d)]
+        f=[date_to_float(str(_),format=format) for _ in array(d)]
         return array(f)

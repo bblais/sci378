@@ -621,6 +621,17 @@ def lnprior_function(model):
     return _lnprior
 
 
+def dicttable(D):
+    buf=[]
+    add=buf.append
+    add('<table>')
+ 
+    for key in D:
+        add('<tr><td><b>%s</b></td><td>%s</td></tr>' % (key,D[key]))
+        
+    add('</table>')
+    return '\n'.join(buf) 
+
 class MCMCModel_Meta(object):
 
     def __init__(self,**kwargs):
@@ -728,7 +739,7 @@ class MCMCModel_Meta(object):
         try:
             import multiprocess as mp
             mp.set_start_method('fork')            
-        except ImportError:
+        except (ImportError,RuntimeError):
             self.parallel=False
 
         import os
@@ -1058,6 +1069,99 @@ class MCMCModel_Meta(object):
         
         result=eval('np.sum(%s)/N' % S,D)
         return result
+
+
+
+    def summary(self):
+        buf=[]
+        add=buf.append
+        
+        def tds(L):
+            return ' '.join([f'<td>{s}</td>' for s in L])
+        def b(s):
+            s=str(s)
+            return f"<b>{s}</b"
+        
+        add('<h1>Priors</h1>')
+        add('<table>')
+        
+        row=[]
+        td=row.append
+        
+        td(b("name"))
+        td(b("prior"))
+        td(b(" "))
+        
+        add('<tr>%s</tr>' % (tds(row)))
+        for p in self.params:
+            typestr=str(type(self.params[p])).split("'")[1].replace('pyndamics3.mcmc.','')
+            
+            row=[]
+            td=row.append
+            
+            td(b(p))
+            td(typestr)
+        
+            if typestr=='Uniform':
+                td(dicttable(
+                    {'min':self.params[p].min,
+                    'max':self.params[p].max}))
+            else:
+                td(dicttable({}))
+                
+            add('<tr>%s</tr>' % (tds(row)))
+        
+        add('</table>')
+        
+        add('<h1>Fit Statistics</h1>')
+            
+        N=sum([len(c.data['value']) for c in model.sim.components if c.data])
+        fit_stats={'data points':N,
+                'variables':len(model.params),
+                'number of walkers':model.nwalkers,
+                'number of samples':model.samples.shape[0],
+                'Bayesian info crit. (BIC)':model.BIC}
+        add(dicttable(fit_stats))
+        
+            
+        
+        add('<h1>Posteriors</h1>')
+        add('<table>')
+        
+        row=[]
+        td=row.append
+        
+        td(b("name"))
+        td(b("value"))
+        td(b("2.5%"))
+        td(b("97.5%"))
+        
+        add('<tr>%s</tr>' % (tds(row)))
+        
+        pp=self.percentiles([0.025,50,97.5])
+        for p in self.params:
+            typestr=str(type(self.params[p])).split("'")[1].replace('pyndamics3.mcmc.','')
+            
+            row=[]
+            td=row.append
+            
+            td(b(p))
+            td(f'{pp[p][1]:.5g}')
+            td(f'{pp[p][0]:.5g}')
+            td(f'{pp[p][2]:.5g}')
+
+            add('<tr>%s</tr>' % (tds(row)))
+        
+        add('</table>')
+            
+        
+        
+        
+        #return HTML('\n'.join(buf))
+        return '\n'.join(buf)        
+
+
+
 
 
 class MCMCModel(MCMCModel_Meta):
