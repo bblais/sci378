@@ -687,7 +687,7 @@ class MCMCModel_Meta(object):
     def __call__(self,theta):
         return self.lnprob(theta)
 
-    def set_initial_values(self,method='prior',*args,**kwargs):
+    def set_initial_values(self,method='prior',verbose=False,*args,**kwargs):
         if method=='prior':
             ndim=len(self.params)
             try:
@@ -711,11 +711,14 @@ class MCMCModel_Meta(object):
             self.sampler = emcee.EnsembleSampler(self.nwalkers, ndim, 
                     lnprior_function(self))
 
-            timeit(reset=True)
-            print("Sampling Prior...")
+            if verbose:
+                timeit(reset=True)
+                print("Sampling Prior...")
             self.sampler.run_mcmc(pos, N,**kwargs)
-            print("Done.")
-            print((timeit()))
+
+            if verbose:
+                print("Done.")
+                print((timeit()))
 
             # assign the median back into the simulation values
             self.burn()
@@ -751,7 +754,7 @@ class MCMCModel_Meta(object):
         ndim=len(self.params)
         self.samples = self.sampler.chain[:, burnin:, :].reshape((-1, ndim))
     
-    def run_mcmc(self,N,repeat=1,**kwargs):
+    def run_mcmc(self,N,repeat=1,verbose=False,**kwargs):
         try:
             import multiprocess as mp
             mp.set_start_method('fork')            
@@ -777,10 +780,11 @@ class MCMCModel_Meta(object):
             if not self.parallel:
                 self.sampler = emcee.EnsembleSampler(self.nwalkers, ndim, self,)
 
-                if repeat==1:
-                    print("Running MCMC...")
-                else:
-                    print("Running MCMC %d/%d..." % (i+1,repeat))
+                if verbose:
+                    if repeat==1:
+                        print("Running MCMC...")
+                    else:
+                        print("Running MCMC %d/%d..." % (i+1,repeat))
 
                 self.sampler.run_mcmc(self.last_pos, N,**kwargs)
 
@@ -794,8 +798,9 @@ class MCMCModel_Meta(object):
 
                     self.sampler.run_mcmc(self.last_pos, N,**kwargs)
 
-            print("Done.")
-            print((timeit()))
+            if verbose:
+                print("Done.")
+                print((timeit()))
 
 
             # assign the median back into the simulation values
