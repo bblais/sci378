@@ -438,10 +438,7 @@ class StudentT(object):
         self.std=std
         self.dof=dof
         self.default=mean
-        
-    @property
-    def D(self):
-        return D.t(self.dof,loc=self.mean,scale=self.std)
+        self.D=D.t(self.dof,loc=self.mean,scale=self.std)
 
     def rand(self,*args):
         return np.random.randn(*args)*self.std+self.mean
@@ -455,6 +452,7 @@ class Normal(object):
         self.std=std
         self.default=mean
         self.all_positive=all_positive
+        self.D=D.norm(self.mean,self.std)
         
     def rand(self,*args):
 
@@ -466,20 +464,13 @@ class Normal(object):
     def __str__(self):
         return "Normal(%g,%g)" % (self.mean,self.std)
 
-    @property
-    def D(self):
-        return D.norm(self.mean,self.std)
-
 
 class LogNormal(object):
     def __init__(self,mean=0,std=1):
         self.mean=mean
         self.std=std
         self.default=mean
-        
-    @property
-    def D(self):
-        return D.lognorm(self.mean,self.std)
+        self.D=D.lognorm(self.mean,self.std)
 
     def rand(self,*args):
         return np.random.randn(*args)*self.std+self.mean
@@ -491,26 +482,20 @@ class LogNormal(object):
 class Exponential(object):
     def __init__(self,_lambda=1):
         self._lambda=_lambda
-
-    @property
-    def D(self):
-        return D.expon(self._lambda)
+        self.D=D.expon(scale=self._lambda)
 
     def rand(self,*args):
         return np.random.rand(*args)*2+1
         
     def __call__(self,x):
-        return logexponpdf(x,self._lambda)
+        return logexponpdf(x,scale=self._lambda)
 
 class HalfCauchy(object):
     def __init__(self,x0=0,scale=1):
         self.x0=x0
         self.scale=scale
         self.default=x0
-
-    @property
-    def D(self):
-        return D.halfcauchy(loc=self.x0,scale=self.scale) 
+        self.D=D.halfcauchy(loc=self.x0,scale=self.scale) 
 
     def rand(self,*args):
         return np.random.rand(*args)*2
@@ -522,10 +507,7 @@ class HalfCauchy(object):
 class HalfNormal(object):
     def __init__(self,sigma=1):
         self.sigma=sigma
-
-    @property
-    def D(self):
-        return D.halfnorm(self.sigma)
+        self.D=D.halfnorm(self.sigma)
 
     def rand(self,*args):
         return np.random.rand(*args)*2
@@ -538,10 +520,7 @@ class Uniform(object):
         self.min=min
         self.max=max
         self.default=(min+max)/2.0
-
-    @property
-    def D(self):
-        return D.uniform(self.min,self.max-self.min)
+        self.D=D.uniform(self.min,self.max-self.min)
 
     def rand(self,*args):
         return np.random.rand(*args)*(self.max-self.min)+self.min
@@ -565,10 +544,7 @@ class Cauchy(object):
         self.x0=x0
         self.scale=scale
         self.default=x0
-
-    @property
-    def D(self):
-        return D.cauchy(loc=self.x0,scale=self.scale) 
+        self.D=D.cauchy(loc=self.x0,scale=self.scale) 
 
     def rand(self,*args):
         return np.random.rand(*args)*2-1
@@ -582,12 +558,9 @@ class Beta(object):
         self.h=h
         self.N=N
         self.default=float(h)/N
-
-    @property
-    def D(self):
         a=self.h+1
         b=(self.N-self.h)+1
-        return D.beta(a,b)
+        self.D=D.beta(a,b)
 
 
     def rand(self,*args):
@@ -601,10 +574,7 @@ class Bernoulli(object):
         self.h=h
         self.N=N
         self.default=float(h)/N
-
-    @property
-    def D(self):
-        return D.bernoulli(self.default)
+        self.D=D.bernoulli(self.default)
 
     def rand(self,*args):
         return np.random.rand(*args)
@@ -913,8 +883,8 @@ class MCMCModel_Meta(object):
             result=histogram(samples,bins=200)
             xlim=py.gca().get_xlim()
             x=py.linspace(xlim[0],xlim[1],500)
-            y=D.norm.pdf(x,np.median(samples),np.std(samples))
-            py.plot(x,y,'-')
+            #y=D.norm.pdf(x,np.median(samples),np.std(samples))
+            #py.plot(x,y,'-')
 
             v=np.percentile(samples, [2.5, 50, 97.5],axis=0)
             py.title(r'$\hat{%s}^{97.5}_{2.5}=%.3f^{%.3f}_{%.3f}$' % (label,v[1],v[2],v[0]))
