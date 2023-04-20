@@ -427,8 +427,11 @@ def logbetapdf(theta, h, N):
     return logfact(N+1)-logfact(h)-logfact(N-h)+np.log(theta)*h+np.log(1-theta)*(N-h)
 
 def logexponpdf(x,_lambda):
-    # p(x)=l exp(l x)
-    return _lambda*x + np.log(_lambda)
+    # p(x)=l exp(-l x)
+    if x>0.0:
+        return -_lambda*x + np.log(_lambda)
+    return -np.inf
+
 
 import scipy.optimize as op
 
@@ -485,10 +488,11 @@ class Exponential(object):
         self.D=D.expon(self._lambda)
 
     def rand(self,*args):
-        return np.random.rand(*args)*2+1
+        return np.random.rand(*args)*2
         
     def __call__(self,x):
         return logexponpdf(x,self._lambda)
+
 
 class HalfCauchy(object):
     def __init__(self,x0=0,scale=1):
