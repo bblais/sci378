@@ -923,11 +923,9 @@ class MCMCModel_Meta(object):
 
     def sample_iterator(self,*args):
         s=self.get_samples(*args)
-        L=len(s[0])
-        if L>self.max_iterator:
-            L=self.max_iterator
+        L=min(s.shape[0],self.max_iterator)
         for i in range(L):
-            yield [ss[i] for ss in s]        
+            yield s[i,:]
 
     def random_sample(self):
         return choice(self.samples)

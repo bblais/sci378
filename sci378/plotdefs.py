@@ -22,6 +22,10 @@ rcParams['figure.figsize']=(12,8)
 
 rcParams['axes.grid']=True
 
+
+def small_figures():
+    rcParams['figure.figsize']=(12,8)
+
 def set_plot_colors(*args):
 
     # set_plot_colors("red","green","blue","cyan","orange")
