@@ -482,7 +482,7 @@ class LogNormal(object):
 class Exponential(object):
     def __init__(self,_lambda=1):
         self._lambda=_lambda
-        self.D=D.expon(scale=self._lambda)
+        self.D=D.expon(self._lambda)
 
     def rand(self,*args):
         return np.random.rand(*args)*2+1
