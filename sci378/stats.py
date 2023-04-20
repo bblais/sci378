@@ -488,7 +488,7 @@ class Exponential(object):
         return np.random.rand(*args)*2+1
         
     def __call__(self,x):
-        return logexponpdf(x,scale=self._lambda)
+        return logexponpdf(x,self._lambda)
 
 class HalfCauchy(object):
     def __init__(self,x0=0,scale=1):
