@@ -1380,3 +1380,33 @@ class MCMCModelErr(MCMCModel):
         y_fit=self.function(self.x,**params_dict)
         
         return lognormalpdf(self.y,y_fit,self.yerr)
+
+    
+    
+def plot_many(model,lmfit_model,x,color='b',N=500):
+    samples=model.get_samples()
+    params=lmfit_model.make_params()
+    D={'params':params,
+      lmfit_model.independent_vars[0]:x}
+    for i in range(N):
+        s=np.random.randint(samples.shape[0])
+        theta=samples[s,:]
+
+
+        for i,key in enumerate(model.params):
+            if key in params:
+                params[key].value=theta[i]
+
+        
+        y=lmfit_model.eval(**D)
+        
+        plot(x,y,'-',color=color,alpha=0.01)
+        
+    median=model.percentiles(50)
+    for i,key in enumerate(model.params):
+        if key in params:
+            params[key].value=median[key]
+        
+    y=lmfit_model.eval(**D)
+    plot(x,y,'-',color=color)
+    
