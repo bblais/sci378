@@ -11,6 +11,7 @@ from scipy.stats import distributions as D
 from numpy import *
 from pylab import *
 import pylab as py
+import warnings
 
 
 # In[4]:
@@ -432,6 +433,23 @@ def logexponpdf(x,_lambda):
         return -_lambda*x + np.log(_lambda)
     return -np.inf
 
+def logUniform(x,mn,mx):
+    return loguniformpdf(x,mn,mx)
+
+def logNormal(x,μ,σ):
+    return lognormalpdf(x,μ,σ)
+
+def logJeffreys(x):
+    return logjeffreyspdf(x)
+
+def logExponential(x,scale):
+    value=logexponpdf2(x,scale)
+    return value
+
+def logStudent_T(x,df,μ,σ):
+    value=logtpdf(x,df,μ,σ)
+    return value
+
 
 import scipy.optimize as op
 
@@ -626,6 +644,7 @@ class MCMCModel_Meta(object):
 
     def __init__(self,**kwargs):
         self.params=kwargs
+        self.warnings=[]
         
         self.keys=[]
         for key in self.params:
@@ -688,7 +707,12 @@ class MCMCModel_Meta(object):
             if verbose:
                 timeit(reset=True)
                 print("Sampling Prior...")
-            self.sampler.run_mcmc(pos, N,**kwargs)
+                
+            with warnings.catch_warnings(record=True) as warning_list:
+                self.sampler.run_mcmc(pos, N,**kwargs)
+
+            self.warnings.extend(warning_list)
+                
 
             if verbose:
                 print("Done.")
@@ -760,8 +784,11 @@ class MCMCModel_Meta(object):
                     else:
                         print("Running MCMC %d/%d..." % (i+1,repeat))
 
-                self.sampler.run_mcmc(self.last_pos, N,**kwargs)
+                with warnings.catch_warnings(record=True) as warning_list:
+                    self.sampler.run_mcmc(self.last_pos, N,**kwargs)
 
+                self.warnings.extend(warning_list)
+                        
             else:
                 with mp.Pool() as pool:
                     self.sampler = emcee.EnsembleSampler(self.nwalkers, ndim, self, pool=pool)
@@ -770,7 +797,12 @@ class MCMCModel_Meta(object):
                     else:
                         print("Running Parallel MCMC %d/%d..." % (i+1,repeat))
 
-                    self.sampler.run_mcmc(self.last_pos, N,**kwargs)
+                    with warnings.catch_warnings(record=True) as warning_list:
+                        self.sampler.run_mcmc(self.last_pos, N,**kwargs)
+            
+                    self.warnings.extend(warning_list)
+                        
+                    
 
             if verbose:
                 print("Done.")
@@ -848,22 +880,9 @@ class MCMCModel_Meta(object):
         fig = corner(self.samples[:,idx], labels=labels,**kwargs)
 
             
-    def plot_distributions(self,*args,**kwargs):
-
+    def plot_distributions(self,*args,kde=False,xlim=None,**kwargs):
+        from scipy.stats import gaussian_kde
         from scipy.stats import distributions as D
-        def kdeplot_op(ax,data):
-            from scipy.stats import kde
-            
-            data = np.atleast_2d(data.T).T
-            for i in range(data.shape[1]):
-                d = data[:, i]
-                density = kde.gaussian_kde(d)
-                l = np.min(d)
-                u = np.max(d)
-                x = np.linspace(0, 1, 100) * (u - l) + l
-
-                ax.plot(x, density(x))
-
 
 
         if not args:
@@ -884,14 +903,42 @@ class MCMCModel_Meta(object):
             py.figure(figsize=(12,4))
             samples=self.get_samples(key)
             
-            result=histogram(samples,bins=200)
-            xlim=py.gca().get_xlim()
-            x=py.linspace(xlim[0],xlim[1],500)
-            #y=D.norm.pdf(x,np.median(samples),np.std(samples))
-            #py.plot(x,y,'-')
+            x,y=histogram(samples,bins=200,plot=False)
+            if xlim is None:
+                xl=(x[0],x[-1])
+            else:
+                xl=xlim.get(key,(x[0],x[-1]))
+                
+            
+            
+            if kde:
+                density = gaussian_kde(samples.ravel())
+                xx=linspace(xl[0],xl[1],200)
+                yy=density(xx)
+                plot(xx,yy,lw=2)
+                fill_between(xx,yy,facecolor='blue', alpha=0.2)
 
-            v=np.percentile(samples, [2.5, 50, 97.5],axis=0)
-            py.title(r'$\hat{%s}^{97.5}_{2.5}=%.3f^{%.3f}_{%.3f}$' % (label,v[1],v[2],v[0]))
+                HDI=np.percentile(samples.ravel(), [2.5, 50, 97.5],axis=0)
+                yl=gca().get_ylim()
+                text((HDI[0]+HDI[2])/2, 0.15*yl[1],'95% HDI', ha='center', va='center',fontsize=12)
+                plot(HDI,[yl[1]*.1,yl[1]*.1,yl[1]*.1],'k.-',linewidth=1)
+                for v in HDI:
+                    if v<0.005:
+                        text(v, 0.05*yl[1],'%.3g' % v, ha='center', va='center', 
+                             fontsize=12)
+                    else:
+                        text(v, 0.05*yl[1],'%.3f' % v, ha='center', va='center', 
+                             fontsize=12)
+                
+                
+            else:
+                result=histogram(samples,bins=200,plot=True)
+                v=np.percentile(samples, [2.5, 50, 97.5],axis=0)
+                py.title(r'$\hat{%s}^{97.5}_{2.5}=%.3f^{%.3f}_{%.3f}$' % (label,v[1],v[2],v[0]))
+            
+            
+            gca().set_xlim(*xl)
+
             py.ylabel(r'$p(%s|{\rm data})$' % label)
             py.xlabel(r'$%s$' % label)
                 
@@ -1158,12 +1205,13 @@ class MCMCModel_Meta(object):
 
 
 class MCMCModel(MCMCModel_Meta):
-    def __init__(self,data,lnlike,lnprior=None,**kwargs):
+    def __init__(self,data,lnlike,lnprior=None,prior_kwargs={},**kwargs):
         import inspect
 
         self.data=data
         self.lnprior_function=lnprior
         self.lnlike_function=lnlike
+        self.prior_kwargs=prior_kwargs
 
         # if not lnprior is None:
 
@@ -1205,7 +1253,8 @@ class MCMCModel(MCMCModel_Meta):
             for i,key in enumerate(self.keys):
                 params_dict[key]=theta[i]
                     
-            return self.lnprior_function(**params_dict)
+            D=dict(params_dict, **self.prior_kwargs)
+            return self.lnprior_function(**D)
 
 
     def lnlike(self,theta):
