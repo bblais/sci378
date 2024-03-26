@@ -1,4 +1,4 @@
-__version__='0.0.31'
+__version__='0.0.32'
 print("Version: ",__version__)
 
 from .plotdefs import *

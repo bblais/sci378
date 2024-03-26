@@ -756,7 +756,7 @@ class MCMCModel_Meta(object):
         try:
             import multiprocess as mp
             mp.set_start_method('fork')            
-        except (ImportError,RuntimeError):
+        except (ImportError,RuntimeError,ValueError):
             self.parallel=False
 
         import os
