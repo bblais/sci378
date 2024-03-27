@@ -664,6 +664,7 @@ class MCMCModel_Meta(object):
         self.max_iterator=1000  # for the sample iterator
 
         self.parallel = False
+        self.pyndamics=False
 
     def lnprior(self,theta):
         pass
@@ -819,6 +820,12 @@ class MCMCModel_Meta(object):
             if repeat>1:
                 self.set_initial_values('samples')  # reset using the 16-84 percentile values from the samples
 
+        if self.pyndamics:  
+            print("Copying best estimates to simulation...",end='')
+            median_values=self.percentiles(50)                
+            self.sim.params(**median_values)
+            print("done.")
+                
 
     def plot_chains(self,*args,**kwargs):
         py.clf()
@@ -1203,42 +1210,29 @@ class MCMCModel_Meta(object):
 
 
 
-
 class MCMCModel(MCMCModel_Meta):
     def __init__(self,data,lnlike,lnprior=None,prior_kwargs={},**kwargs):
         import inspect
 
         self.data=data
+        
+        
         self.lnprior_function=lnprior
         self.lnlike_function=lnlike
         self.prior_kwargs=prior_kwargs
 
-        # if not lnprior is None:
-
-        #     func=lnprior
-
-        #     pos_args = []
-        #     kw_args = {}
-        #     keywords_ = None
-        #     sig = inspect.signature(func)
-        #     for fnam, fpar in sig.parameters.items():
-        #         if fpar.kind == fpar.VAR_KEYWORD:
-        #             keywords_ = fnam
-        #         elif fpar.kind == fpar.POSITIONAL_OR_KEYWORD:
-        #             if fpar.default == fpar.empty:
-        #                 pos_args.append(fnam)
-        #             else:
-        #                 kw_args[fnam] = fpar.default
-        #         elif fpar.kind == fpar.VAR_POSITIONAL:
-        #             raise ValueError("varargs '*%s' is not supported" % fnam)
-        #     # inspection done
-
-        #     kwargs={k:None for k in pos_args}
-
         MCMCModel_Meta.__init__(self,**kwargs)
 
-        self.k=len(self.params)
-        self.N=len(self.data)
+        try:
+            self.data.initial_values()
+            self.sim=self.data
+            self.pyndamics=True
+        except AttributeError:
+            self.pyndamics=False
+
+        if not self.pyndamics:
+            self.k=len(self.params)
+            self.N=len(self.data)
 
 
     def lnprior(self,theta):
