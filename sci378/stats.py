@@ -14,6 +14,9 @@ import pylab as py
 import warnings
 
 
+from .datasets import *
+
+
 # In[4]:
 
 def histogram(y,bins=50,plot=True):
@@ -754,10 +757,13 @@ class MCMCModel_Meta(object):
         self.samples = self.sampler.chain[:, burnin:, :].reshape((-1, ndim))
     
     def run_mcmc(self,N,repeat=1,verbose=False,**kwargs):
+
         try:
             import multiprocess as mp
-            mp.set_start_method('fork')            
-        except (ImportError,RuntimeError,ValueError):
+            from multiprocessing import cpu_count
+
+            #mp.set_start_method('fork')            
+        except (ImportError,RuntimeError):
             self.parallel=False
 
         import os
@@ -791,12 +797,14 @@ class MCMCModel_Meta(object):
                 self.warnings.extend(warning_list)
                         
             else:
+                ncpu = cpu_count()
+
                 with mp.Pool() as pool:
                     self.sampler = emcee.EnsembleSampler(self.nwalkers, ndim, self, pool=pool)
                     if repeat==1:
-                        print("Running Parallel MCMC...")
+                        print(f"Running Parallel MCMC ({ncpu} CPUs)...")
                     else:
-                        print("Running Parallel MCMC %d/%d..." % (i+1,repeat))
+                        print(f"Running Parallel MCMC ({ncpu} CPUs) %d/%d..." % (i+1,repeat))
 
                     with warnings.catch_warnings(record=True) as warning_list:
                         self.sampler.run_mcmc(self.last_pos, N,**kwargs)
