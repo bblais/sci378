@@ -686,6 +686,56 @@ class MCMCModel_Meta(object):
 
     def set_initial_values(self,method='prior',verbose=False,*args,**kwargs):
         if method=='prior':
+            ndim=len(self.keys)
+            try:
+                N=args[0]
+            except IndexError:
+                N=400
+                
+            nwalkers=self.nwalkers
+            pos=np.random.randn(nwalkers,ndim)*10  # wide initial guess
+
+            self.sampler = emcee.EnsembleSampler(pos.shape[0], pos.shape[1], 
+                    lnprior_function(self))
+
+            timeit(reset=True)
+            print("Sampling Prior...")
+
+            with warnings.catch_warnings(record=True) as warning_list:
+                self.sampler.run_mcmc(pos, N)
+
+            self.warnings.extend(warning_list)
+
+
+            print("Done.")
+            print((timeit()))
+
+            chain=self.sampler.get_chain(discard=N//2)     
+
+            # get rid of anything not finite, starting from the end
+            walker_count=0
+            pos=zeros((nwalkers,ndim))
+            nstep=-1
+            try:
+                while True:
+                    for n in range(chain.shape[1]):
+                        if not np.isfinite(self.lnprior(chain[nstep,n,:])):
+                            continue
+                        else:
+                            pos[walker_count,:]=chain[nstep,n,:]
+                            walker_count+=1
+                            if walker_count>=nwalkers:
+                                break
+
+                    if walker_count>=nwalkers:
+                        break
+                    nstep-=1
+            except IndexError:
+                print("Not enough finite values -- need to guess the parameters better")                   
+            
+            self.last_pos=pos
+
+        elif method=='prior_orig':
             ndim=len(self.params)
             try:
                 N=args[0]
@@ -753,7 +803,7 @@ class MCMCModel_Meta(object):
             self.burn_percentage=burn_percentage
             
         burnin = int(self.sampler.chain.shape[1]*self.burn_percentage)  # burn 25 percent
-        ndim=len(self.params)
+        ndim=len(self.keys)
         self.samples = self.sampler.chain[:, burnin:, :].reshape((-1, ndim))
     
     def run_mcmc(self,N,repeat=1,verbose=False,**kwargs):
@@ -772,11 +822,11 @@ class MCMCModel_Meta(object):
             os.environ["OMP_NUM_THREADS"] = "1"            
 
 
-        ndim=len(self.params)
         
         if self.last_pos is None:
             self.set_initial_values()
         
+        ndim=len(self.keys)
         
         for i in range(repeat):
 
@@ -842,7 +892,7 @@ class MCMCModel_Meta(object):
             args=self.keys
         
         
-        fig, axes = py.subplots(len(self.params), 1, sharex=True, figsize=(8, 5*len(args)))
+        fig, axes = py.subplots(len(self.keys), 1, sharex=True, figsize=(8, 5*len(args)))
         try:  # is it iterable?
             axes[0]
         except TypeError:
@@ -1224,12 +1274,22 @@ class MCMCModel(MCMCModel_Meta):
 
         self.data=data
         
-        
         self.lnprior_function=lnprior
         self.lnlike_function=lnlike
         self.prior_kwargs=prior_kwargs
 
         MCMCModel_Meta.__init__(self,**kwargs)
+
+        argspec=inspect.getfullargspec(lnprior)
+        self.keys=argspec.args
+        L=len(argspec.args)-len(prior_kwargs)
+        self.keys=self.keys[:L]
+
+        self.index={}
+        for i,key in enumerate(self.keys):
+            self.index[key]=i
+
+
 
         try:
             self.data.initial_values()
@@ -1239,7 +1299,7 @@ class MCMCModel(MCMCModel_Meta):
             self.pyndamics=False
 
         if not self.pyndamics:
-            self.k=len(self.params)
+            self.k=len(self.keys)
             self.N=len(self.data)
 
 
@@ -1282,7 +1342,7 @@ class MCMCModel1(MCMCModel_Meta):
         self.keys.append('_sigma')        
         self.index['_sigma']=len(self.keys)-1
 
-        self.k=len(self.params)
+        self.k=len(self.keys)
         self.N=len(self.x)
 
 
@@ -1362,7 +1422,7 @@ class MCMCModelErr(MCMCModel):
         
         MCMCModel_Meta.__init__(self,**kwargs)
 
-        self.k=len(self.params)
+        self.k=len(self.keys)
         self.N=len(self.x)
 
 
