@@ -439,8 +439,11 @@ def logexponpdf(x,_lambda):
 def logUniform(x,mn,mx):
     return loguniformpdf(x,mn,mx)
 
-def logNormal(x,μ,σ):
-    return lognormalpdf(x,μ,σ)
+def logNormal(x,μ,σ,all_positive=False):
+    return lognormalpdf(x,μ,σ,all_positive)
+
+def logHalfNormal(x,σ):
+    return loghalfnormalpdf(x,σ)
 
 def logJeffreys(x):
     return logjeffreyspdf(x)
@@ -452,6 +455,10 @@ def logExponential(x,scale):
 def logStudent_T(x,df,μ,σ):
     value=logtpdf(x,df,μ,σ)
     return value
+
+def logHalfCauchy(x,x0,scale):
+    return loghalfcauchypdf(x,x0,scale)
+    
 
 
 import scipy.optimize as op
