@@ -1050,8 +1050,9 @@ class MCMCModel_Meta(object):
         for i in range(L):
             yield s[i,:]
 
-    def random_sample(self):
-        return choice(self.samples)
+    def random_sample(self,size=1):
+        idx=randint(len(self.samples),size=size)
+        return self.samples[idx,:]
 
 
     def get_samples(self,*args):
