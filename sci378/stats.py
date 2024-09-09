@@ -712,7 +712,8 @@ class MCMCModel_Meta(object):
                     lnprior_function(self))
 
             timeit(reset=True)
-            print("Sampling Prior...")
+            if verbose:
+                print("Sampling Prior...")
 
             with warnings.catch_warnings(record=True) as warning_list:
                 self.sampler.run_mcmc(pos, N)
@@ -720,8 +721,9 @@ class MCMCModel_Meta(object):
             self.warnings.extend(warning_list)
 
 
-            print("Done.")
-            print((timeit()))
+            if verbose:
+                print("Done.")
+                print((timeit()))
 
             chain=self.sampler.get_chain(discard=N//2)     
 

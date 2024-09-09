@@ -1,7 +1,7 @@
-__version__='0.0.41'
+__version__='0.0.42'
 print("Version: ",__version__)
 
-from .plotdefs import *
+from .plotdefs`` import *
 
 from .utils import *
 
