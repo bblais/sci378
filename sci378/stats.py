@@ -439,6 +439,9 @@ def logexponpdf(x,_lambda):
 def logUniform(x,mn,mx):
     return loguniformpdf(x,mn,mx)
 
+def logBernoulli(theta,h,N):
+    return logbernoullipdf(theta,h,N)
+
 def logNormal(x,μ,σ,all_positive=False):
     return lognormalpdf(x,μ,σ,all_positive)
 
