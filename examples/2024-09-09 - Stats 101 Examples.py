@@ -376,38 +376,141 @@ for i,(x,y) in enumerate(((x1,y1),(x2,y2),(x3,y3),(x4,y4))):
 # In[ ]:
 
 
+print("[",end="")
 for i,(x,y) in enumerate(((x1,y1),(x2,y2),(x3,y3),(x4,y4))):
+    print(".",end="")
     subplot(2,2,i+1)
     plot(x,y,'o')
     
     model=MCMCModel((x,y),loglikelihood,logprior)
-    model.run_mcmc(400,repeat=3,verbose=False)
+    model.run_mcmc(800,repeat=3,verbose=False)
 
-    plot(x,linear(x,model.best_estimates('m')['m'][1],model.best_estimates('b')['b'][1]),'-')
+    m,b=model.best_estimates('m')['m'][1][0],model.best_estimates('b')['b'][1][0]
+    
+    plot(x,linear(x,m,b),'-')
+    title(f"m={m:.2f} b={b:.2f}")
     
     for sample in model.random_sample(100):
         m,b,σ=sample
         plot(x,linear(x,m,b),'g-',alpha=0.02)
         
+print("]")
         
 
 
-# In[ ]:
-
-
-model.best_estimates('m')
-
+# ### robust regression
 
 # In[ ]:
 
 
-linear(x,model.best_estimates('m')['m'][1],model.best_estimates('b')['b'][1])
+def logprior(m,b,σ,ν):
+    value=0
+    
+    value+=logNormal(m,0,100)
+    value+=logJeffreys(σ)
+    value+=logNormal(b,0,100)
+    value+=logExponential(ν-1,29)  # large ν = Normal, small ν = outliery
+    
+    
+    return value
+
+def loglikelihood(data,m,b,σ,ν):
+    x,y=data
+    y_predict=linear(x,m,b)
+    
+    value=0
+        
+    value+=logStudent_T(y-y_predict,ν,0,σ)
+    
+    return value
+    
 
 
 # In[ ]:
 
 
-x
+print("[",end="")
+for i,(x,y) in enumerate(((x1,y1),(x2,y2),(x3,y3),(x4,y4))):
+    print(".",end="")
+    subplot(2,2,i+1)
+    plot(x,y,'o')
+    
+    model=MCMCModel((x,y),loglikelihood,logprior)
+    model.run_mcmc(800,repeat=3,verbose=False)
+
+    m,b=model.best_estimates('m')['m'][1][0],model.best_estimates('b')['b'][1][0]
+    
+    plot(x,linear(x,m,b),'-')
+    title(f"m={m:.2f} b={b:.2f}")
+    
+    for sample in model.random_sample(100):
+        m,b,σ,ν=sample
+        plot(x,linear(x,m,b),'g-',alpha=0.02)
+        
+print("]")
+        
+
+
+# ### robust quadratic regression
+
+# In[ ]:
+
+
+def quadratic(x,a=1,b=1,c=1):
+    return a*x**2+b*x+c
+
+
+def logprior(a,b,c,σ,ν):
+    value=0
+    
+    value+=logNormal(m,0,100)
+    value+=logJeffreys(σ)
+    value+=logNormal(b,0,100)
+    value+=logExponential(ν-1,29)  # large ν = Normal, small ν = outliery
+    
+    
+    return value
+
+def loglikelihood(data,a,b,c,σ,ν):
+    x,y=data
+    y_predict=quadratic(x,a,b,c)
+    
+    value=0
+        
+    value+=logStudent_T(y-y_predict,ν,0,σ)
+    
+    return value
+    
+
+
+# In[ ]:
+
+
+print("[",end="")
+for i,(x,y) in enumerate(((x1,y1),(x2,y2),(x3,y3),(x4,y4))):
+    print(".",end="")
+    subplot(2,2,i+1)
+    plot(x,y,'o')
+    
+    model=MCMCModel((x,y),loglikelihood,logprior)
+    model.run_mcmc(800,repeat=3,verbose=False)
+
+    a,b,c=model.best_estimates('a')['a'][1][0],model.best_estimates('b')['b'][1][0],model.best_estimates('c')['c'][1][0]
+    
+    xl=gca().get_xlim()
+    yl=gca().get_ylim()
+    xx=linspace(xl[0],xl[1],100)
+    plot(xx,quadratic(xx,a,b,c),'-')
+    title(f"a={a:.2f} b={b:.2f} c={c:.2f}")
+    
+    for sample in model.random_sample(100):
+        a,b,c,σ,ν=sample
+        plot(xx,quadratic(xx,a,b,c),'g-',alpha=0.02)
+        
+        
+    gca().set_ylim(yl)
+print("]")
+        
 
 
 # In[ ]:
