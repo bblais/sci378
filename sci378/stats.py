@@ -436,6 +436,9 @@ def logexponpdf(x,_lambda):
         return -_lambda*x + np.log(_lambda)
     return -np.inf
 
+def logCauchy(x,x0,scale):
+    return logcauchypdf(x,x0,scale)
+
 def logUniform(x,mn,mx):
     return loguniformpdf(x,mn,mx)
 

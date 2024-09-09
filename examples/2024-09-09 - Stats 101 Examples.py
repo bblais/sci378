@@ -120,7 +120,7 @@ model.P("σ<1")
 def logprior(θ):
     value=0
     
-    value+=logNormal(θ,0,1)
+    value+=logUniform(θ,0,1)
     
     return value
 
@@ -137,6 +137,8 @@ def loglikelihood(data,θ):
 # In[ ]:
 
 
+data=3,12
+
 model=MCMCModel(data,loglikelihood,logprior)   
 model.run_mcmc(800,repeat=3,verbose=True)
 model.plot_chains()
@@ -152,4 +154,33 @@ model.plot_distributions()
 
 
 model.P("θ<0.5")
+
+
+# ## Cauchy
+
+# In[ ]:
+
+
+data=array([12.0,14,16])
+
+
+# In[ ]:
+
+
+def logprior(x_o,γ):
+    value=0
+    
+    value+=logNormal(x_o,0,100)
+    value+=logJeffreys(γ)
+    
+    return value
+
+def loglikelihood(data,x_o,γ):
+    x=data
+    
+    value=0
+        
+    value+=logCauchy(x-x_o,0,γ)
+    return value
+    
 
