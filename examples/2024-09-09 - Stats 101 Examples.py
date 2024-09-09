@@ -383,7 +383,7 @@ for i,(x,y) in enumerate(((x1,y1),(x2,y2),(x3,y3),(x4,y4))):
     model=MCMCModel((x,y),loglikelihood,logprior)
     model.run_mcmc(400,repeat=3,verbose=False)
 
-    plot(x,linear(x,model.best_estimates('m')['m'][1],model.best_estimates('b')['b'][1])
+    plot(x,linear(x,model.best_estimates('m')['m'][1],model.best_estimates('b')['b'][1]),'-')
     
     for sample in model.random_sample(100):
         m,b,σ=sample
