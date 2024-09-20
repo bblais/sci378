@@ -1236,7 +1236,15 @@ class MCMCModel_Meta(object):
         
         add('<h1>Fit Statistics</h1>')
             
-        N=sum([len(c.data['value']) for c in self.sim.components if c.data])
+        try:
+            N=sum([len(c.data['value']) for c in self.sim.components if c.data])
+        except AttributeError:
+            try:
+                N=len(self.data[0])
+            except TypeError:
+                N=len(self.data)
+
+
         fit_stats={'data points':N,
                 'variables':len(self.params),
                 'number of walkers':self.nwalkers,
